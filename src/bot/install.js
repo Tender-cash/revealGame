@@ -1,8 +1,11 @@
 const { PermissionFlagsBits, ChannelType } = require("discord.js");
 const models = require("../models");
+const RevealService = require("../services/revealService");
 
-const ONBOARDING_CHANNEL = "welcome-tender";
-const NOTIFICATION_CHANNEL = "wager-notifications";
+const NOTIFICATION_CHANNEL = "reveal-notifications";
+const TRANSCRIPT_CHANNEL = "reveal-transcripts";
+const ESCROW_SUPPORT_ROLE = "escrow_support";
+const LOG_CATEGORY = "reveal-logs";
 
 const HandleInstallProcess = async (client) => {
   // find server activefrom server List
@@ -20,6 +23,8 @@ const HandleInstallProcess = async (client) => {
   } else {
     await createRequiredChannels(client, exServer);
   }
+  // create reveal wallet if not existing
+  await RevealService.createRevealWallet();
 };
 
 const createRequiredChannels = async (client, serverData) => {
@@ -38,6 +43,67 @@ const createRequiredChannels = async (client, serverData) => {
         type: ChannelType.GuildText,
       });
     }
+  }
+  const everyoneRole = guild.roles.everyone;
+  const supportRole = guild.roles.cache.find(
+    (r) => r.name === ESCROW_SUPPORT_ROLE
+  );
+
+  let transcriptChannel = guild.channels.cache.find(
+    (c) => c.name == TRANSCRIPT_CHANNEL && c.type == ChannelType.GuildText
+  );
+  if (!transcriptChannel) {
+    let logCategory = guild.channels.cache.find(
+      (c) => c.name == LOG_CATEGORY && c.type == ChannelType.GuildCategory
+    );
+    if (!logCategory) {
+      // create log category
+      logCategory = await guild.channels.create({
+        name: LOG_CATEGORY,
+        type: ChannelType.GuildCategory,
+        permissionOverwrites: [
+          {
+            type: "role",
+            id: supportRole.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+            ],
+          },
+          {
+            type: "role",
+            id: everyoneRole.id,
+            deny: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+            ],
+          },
+        ],
+      });
+    }
+    transcriptChannel = await guild.channels.create({
+      name: TRANSCRIPT_CHANNEL,
+      type: ChannelType.GuildText,
+      permissionOverwrites: [
+        {
+          type: "role",
+          id: supportRole.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+          ],
+        },
+        {
+          type: "role",
+          id: everyoneRole.id,
+          deny: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+          ],
+        },
+      ],
+    });
+    transcriptChannel.setParent(logCategory.id);
   }
   return await models.Server.updateOne(
     { _id: serverData._id },

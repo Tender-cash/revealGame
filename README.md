@@ -1,1 +1,1 @@
-# Wager Bot for Discord
+# Reveal Game Bot for Discord
