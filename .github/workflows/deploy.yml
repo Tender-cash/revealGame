@@ -1,0 +1,26 @@
+name: DEEPLOYMENT CI
+
+on:
+  push:
+    branches:
+      - deploy
+
+env:
+  DEPLOY_DIR: "~/.bot/"
+  GIT_USER: ${{ secrets.GIT_USER }}
+  GIT_PASS: ${{ secrets.GIT_PASS }}
+  REPO: ${{ secrets.REPO }}
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v1
+      - name: Push to Development server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_KEY }}
+          script: cd ${{env.DEPLOY_DIR}} && git stash && git pull https://${{env.GIT_USER}}:${{env.GIT_PASS}}@${{env.REPO}} main --no-edit && yarn install --unsafe-perm && pm2 restart app

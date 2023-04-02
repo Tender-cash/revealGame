@@ -1,0 +1,1 @@
+# Wager Bot for Discord
