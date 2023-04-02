@@ -412,10 +412,13 @@ const RevealService = {
     const balance = await getVirtualBalance(wagerAcctId);
     if (balance < parseFloat(revealPrice))
       return { error: true, message: "Insufficient funds to Create Reveal" };
+    const valueWin = revealPrice * 2;
+    const SystemFee = 20;
+    const amountToClaim = valueWin - (SystemFee / 100) * valueWin;
     const sendValue = await sendFromVirtualToAccount(
       wagerAcctId,
       userAcctId,
-      revealPrice,
+      amountToClaim,
       0
     );
     if (!sendValue.success)

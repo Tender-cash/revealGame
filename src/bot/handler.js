@@ -18,14 +18,16 @@ const duration = require("dayjs/plugin/duration");
 const RevealService = require("../services/revealService");
 const models = require("../models");
 const { PermissionFlagsBits, ChannelType } = require("discord.js");
+const config = require("../config");
 dayjs.extend(utc);
 dayjs.extend(duration);
 
 const FILETAG = "Handler";
 const DELETE_TIMEOUT = 1000;
-const TRANSCRIPT_CHANNEL = "reveal-transcripts";
-const ESCROW_SUPPORT_ROLE = "escrow_support";
-const LOG_CATEGORY = "reveal-logs";
+// const TRANSCRIPT_CHANNEL = "reveal-transcripts";
+// const ESCROW_SUPPORT_ROLE = "escrow_support";
+// const LOG_CATEGORY = "reveal-logs";
+const currentToken = config.TOKEN || "ecox";
 
 const createReveal = async (client, interaction) => {
   const TAG = "createReveal";
@@ -34,6 +36,11 @@ const createReveal = async (client, interaction) => {
   try {
     const revealF = await RevealService.CreateReveal(client, serverId, userId);
     if (revealF.error) return SendReply(interaction, revealF.message, true);
+    await NotifyChannel(
+      client,
+      message,
+      `<@${userId}> (id ${userId})  sends 100${currentToken} to reveal bot`
+    );
     return SendReply(interaction, revealF.message, true);
   } catch (error) {
     Logger.error(`${FILETAG}::${TAG}---${error}`);
@@ -128,6 +135,11 @@ const acceptDeclineReveal = async (client, message, isAccepted = true) => {
       message,
       `<@${escrow.counterparty}> (id ${escrow.counterparty}) has accepted the request to play`,
       false
+    );
+    await NotifyChannel(
+      client,
+      message,
+      `<@${escrow.counterparty}> (id ${escrow.counterparty})  sends 100${currentToken} to reveal bot`
     );
     await RevealCounterPartyAcceptResponse(
       message,
@@ -241,76 +253,76 @@ const claimWins = async (client, message, data) => {
     "Channel Will be Deleted in 10 seconds",
     false
   );
-  const guild = message.guild;
-  const everyoneRole = guild.roles.everyone;
-  const supportRole = guild.roles.cache.find(
-    (r) => r.name === ESCROW_SUPPORT_ROLE
-  );
+  // const guild = message.guild;
+  // const everyoneRole = guild.roles.everyone;
+  // const supportRole = guild.roles.cache.find(
+  //   (r) => r.name === ESCROW_SUPPORT_ROLE
+  // );
 
-  let transcriptChannel = guild.channels.cache.find(
-    (c) => c.name == TRANSCRIPT_CHANNEL && c.type == ChannelType.GuildText
-  );
-  if (!transcriptChannel) {
-    let logCategory = guild.channels.cache.find(
-      (c) => c.name == LOG_CATEGORY && c.type == ChannelType.GuildCategory
-    );
-    if (!logCategory) {
-      // create log category
-      logCategory = await guild.channels.create({
-        name: LOG_CATEGORY,
-        type: ChannelType.GuildCategory,
-        permissionOverwrites: [
-          {
-            type: "role",
-            id: supportRole.id,
-            allow: [
-              PermissionFlagsBits.ViewChannel,
-              PermissionFlagsBits.SendMessages,
-            ],
-          },
-          {
-            type: "role",
-            id: everyoneRole.id,
-            deny: [
-              PermissionFlagsBits.ViewChannel,
-              PermissionFlagsBits.SendMessages,
-            ],
-          },
-        ],
-      });
-    }
-    transcriptChannel = await guild.channels.create({
-      name: TRANSCRIPT_CHANNEL,
-      type: ChannelType.GuildText,
-      permissionOverwrites: [
-        {
-          type: "role",
-          id: supportRole.id,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-          ],
-        },
-        {
-          type: "role",
-          id: everyoneRole.id,
-          deny: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-          ],
-        },
-      ],
-    });
-    transcriptChannel.setParent(logCategory.id);
-  }
+  // let transcriptChannel = guild.channels.cache.find(
+  //   (c) => c.name == TRANSCRIPT_CHANNEL && c.type == ChannelType.GuildText
+  // );
+  // if (!transcriptChannel) {
+  //   let logCategory = guild.channels.cache.find(
+  //     (c) => c.name == LOG_CATEGORY && c.type == ChannelType.GuildCategory
+  //   );
+  //   if (!logCategory) {
+  //     // create log category
+  //     logCategory = await guild.channels.create({
+  //       name: LOG_CATEGORY,
+  //       type: ChannelType.GuildCategory,
+  //       permissionOverwrites: [
+  //         {
+  //           type: "role",
+  //           id: supportRole.id,
+  //           allow: [
+  //             PermissionFlagsBits.ViewChannel,
+  //             PermissionFlagsBits.SendMessages,
+  //           ],
+  //         },
+  //         {
+  //           type: "role",
+  //           id: everyoneRole.id,
+  //           deny: [
+  //             PermissionFlagsBits.ViewChannel,
+  //             PermissionFlagsBits.SendMessages,
+  //           ],
+  //         },
+  //       ],
+  //     });
+  //   }
+  //   transcriptChannel = await guild.channels.create({
+  //     name: TRANSCRIPT_CHANNEL,
+  //     type: ChannelType.GuildText,
+  //     permissionOverwrites: [
+  //       {
+  //         type: "role",
+  //         id: supportRole.id,
+  //         allow: [
+  //           PermissionFlagsBits.ViewChannel,
+  //           PermissionFlagsBits.SendMessages,
+  //         ],
+  //       },
+  //       {
+  //         type: "role",
+  //         id: everyoneRole.id,
+  //         deny: [
+  //           PermissionFlagsBits.ViewChannel,
+  //           PermissionFlagsBits.SendMessages,
+  //         ],
+  //       },
+  //     ],
+  //   });
+  //   transcriptChannel.setParent(logCategory.id);
+  // }
   // save channel transacript to transcript channel
-  const attachment = await discordTranscripts.createTranscript(message.channel);
-  transcriptChannel.send(
-    `${Reveal.channelName} between <@${Reveal.creator}> (${Reveal.creator}) and <@${Reveal.counterparty}> (${Reveal.counterparty})`
-  );
-  transcriptChannel.send({
-    files: [attachment],
-  });
+  // const attachment = await discordTranscripts.createTranscript(message.channel);
+  // transcriptChannel.send(
+  //   `${Reveal.channelName} between <@${Reveal.creator}> (${Reveal.creator}) and <@${Reveal.counterparty}> (${Reveal.counterparty})`
+  // );
+  // transcriptChannel.send({
+  //   files: [attachment],
+  // });
   setTimeout(async () => {
     // remove permission from creator
     await message.channel.permissionOverwrites.delete(Reveal.creator);
