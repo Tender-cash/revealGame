@@ -1,6 +1,6 @@
 [
   {
-    "name": "wager",
-    "description": "fetch wager Dashboard"
+    "name": "reveal",
+    "description": "Start New Reveal Game"
   }
 ]
