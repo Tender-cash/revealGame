@@ -148,6 +148,11 @@ const RevealService = {
     return { error: false, message: "counterparty added" };
   },
   CounterPartyPay: async (userId, channelId, isAccepted = false) => {
+    const wagerWallet = await models.Wallet.findOne({ userId: WagerWalletKey });
+    if (!wagerWallet) {
+      RevealService.createRevealWallet();
+      return { error: true, message: "Try Again" };
+    }
     // find reveal with channelId
     const reveal = await models.Reveal.findOne({ channelId }).lean();
     if (!reveal) return { error: true, message: "Invalid Reveal ID" };
