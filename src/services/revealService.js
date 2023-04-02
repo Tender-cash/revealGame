@@ -25,7 +25,7 @@ dayjs.extend(duration);
 const TAG = "RevealService";
 
 const WagerWalletKey = "reveal";
-const CURentT = "ecox";
+const CURentT = config.TOKEN || "ecox";
 const revealPrice = config.TICKET_VALUE;
 const totalSelections = Array(20)
   .join()

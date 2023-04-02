@@ -19,6 +19,7 @@ const {
   TOTAL_SUPPLY_ECOX,
   CONTRACT_FEE_ECOX,
   TX_CHANNEL_ID,
+  TOKEN,
 } = process.env;
 
 // System config Data
@@ -50,5 +51,6 @@ const config = {
     },
   },
   TX_CHANNEL_ID: TX_CHANNEL_ID || "1091888045034319912",
+  TOKEN: TOKEN || "ecox",
 };
 module.exports = config;
