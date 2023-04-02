@@ -1,5 +1,14 @@
 /* eslint-disable indent */
-const { createReveal, createWager, addSecondPlayer, addPlayerTOReavel, acceptDeclineReveal } = require("./handler");
+const {
+  createReveal,
+  createWager,
+  addSecondPlayer,
+  addPlayerTOReavel,
+  acceptDeclineReveal,
+  makeSelection,
+  nextRoundSelect,
+  claimWins,
+} = require("./handler");
 const { SendReply } = require("./responses");
 const Logger = require("../logger");
 const FILETAG = "COMMANDS";
@@ -35,6 +44,15 @@ const ButtonHandler = (client, interaction, operation, data) => {
         break;
       case "decline-request":
         acceptDeclineReveal(client, interaction, false);
+        break;
+      case "select":
+        makeSelection(client, interaction, data);
+        break;
+      case "next-round":
+        nextRoundSelect(client, interaction, data);
+        break;
+      case "claim-win":
+        claimWins(client, interaction, data);
         break;
       default:
         SendReply(interaction, "Invalid button action!!!");

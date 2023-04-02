@@ -21,7 +21,8 @@ const modelSchema = new Schema(
     creatorScore: { type: String },
     counterpartyScore: { type: String },
     selections: { type: Array },
-    disabledSelections: { type: String },
+    disabledSelections: { type: Array },
+    revealWinner: { type: String },
     serverId: { type: String },
     status: {
       type: String,

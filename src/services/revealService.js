@@ -1,3 +1,4 @@
+/* eslint-disable prefer-destructuring */
 const config = require("../config");
 const Logger = require("../logger");
 const models = require("../models");
@@ -85,29 +86,29 @@ const RevealService = {
       return { error: true, message: "Try Again" };
     }
     // charge userWallet for ticket price
-    // const userWallet = await models.Wallet.findOne({ userId });
-    // if (!userWallet)
-    //   return { error: true, message: "User needs to create a tender wallet" };
-    // const userAcctId =
-    //   CURentT == "eco" ? userWallet.Eco_vId : userWallet.Ecox_vId;
-    // const wagerAcctId =
-    //   CURentT == "eco" ? wagerWallet.Eco_vId : wagerWallet.Ecox_vId;
-    // const balance = await getVirtualBalance(userAcctId);
-    // if (balance < parseFloat(revealPrice))
-    //   return { error: true, message: "Insufficient funds to Create Reveal" };
-    // // charge user wallet
-    // const sendValue = await sendFromVirtualToAccount(
-    //   userAcctId,
-    //   wagerAcctId,
-    //   revealPrice,
-    //   0
-    // );
-    // if (!sendValue.success)
-    //   return {
-    //     error: true,
-    //     message: sendValue.message || "couldn't pay for reveal ticket",
-    //   };
-    const sendValue = {};
+    const userWallet = await models.Wallet.findOne({ userId });
+    if (!userWallet)
+      return { error: true, message: "User needs to create a tender wallet" };
+    const userAcctId =
+      CURentT == "eco" ? userWallet.Eco_vId : userWallet.Ecox_vId;
+    const wagerAcctId =
+      CURentT == "eco" ? wagerWallet.Eco_vId : wagerWallet.Ecox_vId;
+    const balance = await getVirtualBalance(userAcctId);
+    if (balance < parseFloat(revealPrice))
+      return { error: true, message: "Insufficient funds to Create Reveal" };
+    // charge user wallet
+    const sendValue = await sendFromVirtualToAccount(
+      userAcctId,
+      wagerAcctId,
+      revealPrice,
+      0
+    );
+    if (!sendValue.success)
+      return {
+        error: true,
+        message: sendValue.message || "couldn't pay for reveal ticket",
+      };
+    // const sendValue = {};
 
     const channelName = "reveal_" + randomString(5);
     const createdChannel = await RevealService.createPrivateChannel(
@@ -125,7 +126,7 @@ const RevealService = {
       channelId: createdChannel.id,
       serverId,
     });
-    RevealFirstResponse(client, { channelId: createdChannel.id }, false);
+    await RevealFirstResponse(client, { channelId: createdChannel.id }, false);
     return {
       error: false,
       message: "Reveal Paid...",
@@ -148,13 +149,13 @@ const RevealService = {
   },
   CounterPartyPay: async (userId, channelId, isAccepted = false) => {
     // find reveal with channelId
-    const reveal = await models.Reveal.findOne({ channelId });
+    const reveal = await models.Reveal.findOne({ channelId }).lean();
     if (!reveal) return { error: true, message: "Invalid Reveal ID" };
-    // if (reveal.counterparty !== userId)
-    //   return {
-    //     error: true,
-    //     message: `<@${reveal.counterparty}> is required to accept/decline`,
-    //   };
+    if (reveal.counterparty !== userId)
+      return {
+        error: true,
+        message: `<@${reveal.counterparty}> is required to accept/decline`,
+      };
     if (!isAccepted) {
       // remove counterparty and update db
       await models.Reveal.updateOne(
@@ -167,32 +168,33 @@ const RevealService = {
       return { error: false, message: "CounterParty declined", data: reveal };
     }
     // charge userWallet for ticket price
-    // const userWallet = await models.Wallet.findOne({ userId });
-    // if (!userWallet)
-    //   return { error: true, message: "User needs to create a tender wallet" };
-    // const userAcctId =
-    //   CURentT == "eco" ? userWallet.Eco_vId : userWallet.Ecox_vId;
-    // const wagerAcctId =
-    //   CURentT == "eco" ? wagerWallet.Eco_vId : wagerWallet.Ecox_vId;
-    // const balance = await getVirtualBalance(userAcctId);
-    // if (balance < parseFloat(revealPrice))
-    //   return { error: true, message: "Insufficient funds to Create Reveal" };
-    // // charge user wallet
-    // const sendValue = await sendFromVirtualToAccount(
-    //   userAcctId,
-    //   wagerAcctId,
-    //   revealPrice,
-    //   0
-    // );
-    // if (!sendValue.success)
-    //   return {
-    //     error: true,
-    //     message: sendValue.message || "couldn't pay for reveal channel",
-    //   };
-    const sendValue = {};
+    const userWallet = await models.Wallet.findOne({ userId });
+    if (!userWallet)
+      return { error: true, message: "User needs to create a tender wallet" };
+    const userAcctId =
+      CURentT == "eco" ? userWallet.Eco_vId : userWallet.Ecox_vId;
+    const wagerAcctId =
+      CURentT == "eco" ? wagerWallet.Eco_vId : wagerWallet.Ecox_vId;
+    const balance = await getVirtualBalance(userAcctId);
+    if (balance < parseFloat(revealPrice))
+      return { error: true, message: "Insufficient funds to Create Reveal" };
+    // charge user wallet
+    const sendValue = await sendFromVirtualToAccount(
+      userAcctId,
+      wagerAcctId,
+      revealPrice,
+      0
+    );
+    if (!sendValue.success)
+      return {
+        error: true,
+        message: sendValue.message || "couldn't pay for reveal channel",
+      };
+    // const sendValue = {};
     await models.Reveal.updateOne(
       { channelId },
       {
+        counterpartyAmount: revealPrice,
         counterpartyPaid: true,
         counterpartyPaymentInfo: JSON.stringify(sendValue),
         status: "started",
@@ -200,20 +202,19 @@ const RevealService = {
     );
     return { error: false, message: "paid successfully", data: reveal };
   },
-  startRound: async (channelId, currentRound = 1) => {
+  startRound: async (channelId, currentRound = 1, isFresh = false) => {
+    let roundended = false;
+    let disabledSelections = [];
     // fetch reveal
-    const reveal = await models.Reveal.findOne({ channelId });
+    const reveal = await models.Reveal.findOne({ channelId }).lean();
     if (!reveal) return { error: true, message: "Invalid Reveal ID" };
-    const disabledSelections = reveal.disabledSelections
-      ? reveal.disabledSelections
-      : [];
     // create new reveal round
     const revealroundExists = await models.RevealRound.findOne({
       revealId: reveal._id,
       round: currentRound,
     });
-    if (revealroundExists)
-      return { error: true, message: "Reveal Round Already started" };
+    // if (revealroundExists)
+    //   return { error: true, message: "Reveal Round Already started" };
     let revealer = reveal.creator;
     let player = reveal.counterparty;
     // create new reveal round
@@ -230,12 +231,13 @@ const RevealService = {
         previousround.player === reveal.counterparty
           ? reveal.creator
           : reveal.counterparty;
+
+      disabledSelections = isFresh ? [] : previousround.disabledSelections;
     }
     const selections = totalSelections;
-    // .filter(
-    //   (i) => !disabledSelections.includes(i)
-    // );
-    // console.log("selections---", selections);
+    if (currentRound % 2 == 0) {
+      roundended = true;
+    }
     // create new round
     const revealRound = await models.RevealRound.create({
       channelId,
@@ -245,6 +247,8 @@ const RevealService = {
       player,
       selections,
       status: "player_select",
+      roundended,
+      disabledSelections,
     });
     await models.Reveal.updateOne(
       { channelId },
@@ -254,7 +258,7 @@ const RevealService = {
     );
     return {
       error: false,
-      message: `(<@${player}> you are player 1 while <@${revealer}> is the revealer)
+      message: `(<@${player}> you are the Picker while <@${revealer}> is the Revealer)
     `,
       data: {
         selections,
@@ -267,86 +271,159 @@ const RevealService = {
       },
     };
   },
-  playerSelect: async (
-    channelId,
-    currentRound,
-    userId,
-    userType,
-    selection
-  ) => {
+  playerSelect: async (channelId, currentRound, userId, selection) => {
     // fetch reveal
-    const reveal = await models.Reveal.findOne({ channelId });
+    const reveal = await models.Reveal.findOne({ channelId }).lean();
     if (!reveal) return { error: true, message: "Invalid Reveal ID" };
     // find reveal round
     const revealQuery = {
       revealId: reveal._id,
       round: currentRound,
     };
-    const revealroundExists = await models.RevealRound.findOne(revealQuery);
+    const revealroundExists = await models.RevealRound.findOne(
+      revealQuery
+    ).lean();
     if (!revealroundExists)
       return { error: true, message: "Reveal Round Invalid" };
-    if (userType === "player" && revealroundExists.player !== userId)
+    const IsPlayerTurn = revealroundExists.status == "player_select";
+    const IsRevealerTurn = revealroundExists.status == "revealer_select";
+    if (IsPlayerTurn && revealroundExists.player !== userId)
       return {
         error: true,
         message: `<@${revealroundExists.player}> is Required to Select`,
       };
-    if (userType === "revealer" && revealroundExists.revealer !== userId)
+    if (IsRevealerTurn && revealroundExists.revealer !== userId)
       return {
         error: true,
         message: `<@${revealroundExists.revealer}> is Required to Select`,
       };
     // update base on userType
-    const upData =
-      userType === "player"
-        ? {
-            playerSelection: selection,
-            status: "revealer_select",
-          }
-        : {
-            revealerSelection: selection,
-            status: "confirm",
-          };
+    const upData = IsPlayerTurn
+      ? {
+          playerSelection: selection,
+          status: "revealer_select",
+        }
+      : {
+          revealerSelection: selection,
+          status: "confirm",
+        };
     await models.RevealRound.updateOne(revealQuery, upData);
-    if (isPlayer) {
+    if (IsPlayerTurn) {
       return {
         error: false,
         message: `<@${revealroundExists.revealer}> Reveal Selected Number...`,
+        data: {
+          ...revealroundExists,
+          reveal,
+        },
       };
     } else {
+      let winner = null;
+      let won = false;
+      nextRound = true;
+      let message = "move to next Round";
+      let disabledNumbers = revealroundExists.disabledSelections
+        ? revealroundExists.disabledSelections
+        : [];
+      const disabledSelections = [
+        ...disabledNumbers,
+        revealroundExists.playerSelection,
+        selection,
+      ];
+      let creatorScore = parseFloat(reveal.creatorScore) || 0;
+      let counterpartyScore = parseFloat(reveal.counterpartyScore) || 0;
+
       if (revealroundExists.playerSelection === selection) {
-        let creatorScore = parseFloat(reveal.creatorScore) || 0;
-        let counterpartyScore = parseFloat(reveal.counterpartyScore) || 0;
-        let disabledNumbers = reveal.disabledSelections
-          ? JSON.parse(reveal.disabledSelections)
-          : [];
         if (reveal.creator === revealroundExists.revealer) {
           creatorScore = creatorScore + 1;
         } else {
           counterpartyScore = counterpartyScore + 1;
         }
         // mark revealer as winner for round and selection to reveal disabledNumber
-        await models.RevealRound.updateOne(revealQuery, {
-          revealerSelection: selection,
-          won: true,
-          status: "completed",
-        });
-        await models.Reveal.updateOne(
-          { channelId },
-          {
-            creatorScore,
-            counterpartyScore,
-            disabledSelections: JSON.stringify([
-              ...disabledNumbers,
-              revealroundExists.playerSelection,
-              selection,
-            ]),
-          }
-        );
+        won = true;
+        message = `<@${revealroundExists.revealer}> has Won this Round!!`;
       } else {
-        // mark none
+        message = `<@${revealroundExists.revealer}> Pick ${selection} While <@${revealroundExists.player}> Picked ${revealroundExists.playerSelection}`;
       }
+      if (revealroundExists.roundended) {
+        nextRound = false;
+        // find final winner
+        if (counterpartyScore > creatorScore) winner = reveal.counterparty;
+        if (creatorScore > counterpartyScore) winner = reveal.creator;
+        if (creatorScore == counterpartyScore) winner = "draw";
+        if (winner == "draw") {
+          message = message + ". \n It's a Draw!!!";
+        } else {
+          message =
+            message + `. \n <@${winner}> is the Final Winner of the Reveal!!!`;
+        }
+      }
+      await models.RevealRound.updateOne(revealQuery, {
+        revealerSelection: selection,
+        disabledSelections,
+        won,
+        status: "completed",
+      });
+      await models.Reveal.updateOne(
+        { channelId },
+        {
+          creatorScore,
+          counterpartyScore,
+          disabledSelections,
+          revealWinner: winner,
+        }
+      );
+      return {
+        error: false,
+        message,
+        nextRound,
+        won: winner !== "draw",
+        roundended: revealroundExists.roundended,
+        data: {
+          reveal: { ...reveal, creatorScore, counterpartyScore },
+          ...revealroundExists,
+        },
+        winner,
+      };
     }
-    return { error: false, message: "move to the next round" };
+  },
+  claimWins: async (channelId, userId) => {
+    // find reveal round
+    const reveal = await models.Reveal.findOne({ channelId }).lean();
+    if (!reveal) return { error: true, message: "Invalid Reveal ID" };
+    if (reveal.revealWinner !== userId)
+      return {
+        error: true,
+        message: `Don't be a Criminal!!, <@${reveal.revealWinner}> is the Winner!!`,
+      };
+    // process withdrawal
+    const userWallet = await models.Wallet.findOne({ userId });
+    if (!userWallet)
+      return { error: true, message: "User needs to create a tender wallet" };
+    const userAcctId =
+      CURentT == "eco" ? userWallet.Eco_vId : userWallet.Ecox_vId;
+    const wagerAcctId =
+      CURentT == "eco" ? wagerWallet.Eco_vId : wagerWallet.Ecox_vId;
+    const balance = await getVirtualBalance(wagerAcctId);
+    if (balance < parseFloat(revealPrice))
+      return { error: true, message: "Insufficient funds to Create Reveal" };
+    const sendValue = await sendFromVirtualToAccount(
+      wagerAcctId,
+      userAcctId,
+      revealPrice,
+      0
+    );
+    if (!sendValue.success)
+      return {
+        error: true,
+        message: "couldn't pay for send winns",
+        systemMessage: sendValue.message || "couldn't pay for send winns",
+      };
+    return {
+      error: false,
+      message: "Winnings Sent to Winner",
+      data: reveal,
+    };
   },
 };
 

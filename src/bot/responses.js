@@ -27,6 +27,7 @@ const buttonComponent = (
     .setStyle(style)
     .setDisabled(disabled);
 };
+const perChunk = 5;
 
 // Defer Interaction Response
 const SendDefer = async (interaction, content = "Loading....") =>
@@ -144,7 +145,7 @@ const RevealFirstResponse = async (client, data, isUpdated = false) => {
     ephemeral: true,
   };
   return !isUpdated
-    ? SendToChannel(client, data.channelId, msgPayload, true)
+    ? SendToChannel(client, data.channelId, msgPayload, false)
     : MessageToChannel(client, msgPayload, true);
 };
 
@@ -211,87 +212,131 @@ const RevealCounterPartyAcceptResponse = async (
 };
 
 const fetchComponents = (data) => {
-  const guessButtonRow1s = data.selections
-    .filter((i) => i < 6)
-    .map((n) =>
-      buttonComponent(
-        JSON.stringify({ id: "select", data: `${String(n)}` }),
-        String(n),
-        data.disabledSelections.includes(n)
-          ? ButtonStyle.Secondary
-          : ButtonStyle.Primary,
-        data.disabledSelections.includes(n) || data.disabled
-      )
-    );
-  const guessButtonRow2s = data.selections
-    .filter((i) => i > 5 && i < 11)
-    .map((n) =>
-      buttonComponent(
-        JSON.stringify({ id: "select", data: `${String(n)}` }),
-        String(n),
-        data.disabledSelections.includes(n)
-          ? ButtonStyle.Secondary
-          : ButtonStyle.Primary,
-        data.disabledSelections.includes(n) || data.disabled
-      )
-    );
-  const guessButtonRow3s = data.selections
-    .filter((i) => i > 10 && i < 16)
-    .map((n) =>
-      buttonComponent(
-        JSON.stringify({ id: "select", data: `${String(n)}` }),
-        String(n),
-        data.disabledSelections.includes(n)
-          ? ButtonStyle.Secondary
-          : ButtonStyle.Primary,
-        data.disabledSelections.includes(n) || data.disabled
-      )
-    );
-  const guessButtonRow4s = data.selections
-    .filter((i) => i > 15 && i < 21)
-    .map((n) =>
-      buttonComponent(
-        JSON.stringify({ id: "select", data: `${String(n)}` }),
-        String(n),
-        data.disabledSelections.includes(n)
-          ? ButtonStyle.Secondary
-          : ButtonStyle.Primary,
-        data.disabledSelections.includes(n) || data.disabled
-      )
-    );
+  const components = [];
+  const result = data.selections.reduce((resultArray, item, index) => {
+    const chunkIndex = Math.floor(index / perChunk);
 
-  return {
-    msgComponents: new ActionRowBuilder().addComponents(guessButtonRow1s),
-    msgComponents2: new ActionRowBuilder().addComponents(guessButtonRow2s),
-    msgComponents3: new ActionRowBuilder().addComponents(guessButtonRow3s),
-    msgComponents4: new ActionRowBuilder().addComponents(guessButtonRow4s),
-  };
+    if (!resultArray[chunkIndex]) {
+      resultArray[chunkIndex] = []; // start a new chunk
+    }
+
+    resultArray[chunkIndex].push(item);
+
+    return resultArray;
+  }, []);
+  for (let i = 0; i < result.length; i++) {
+    const element = result[i];
+    const guessButtonRow = element.map((n) =>
+      buttonComponent(
+        JSON.stringify({
+          id: "select",
+          data: { selection: `${String(n)}`, round: data.round },
+        }),
+        String(n),
+        data.disabledSelections.includes(n)
+          ? ButtonStyle.Secondary
+          : ButtonStyle.Primary,
+        data.disabledSelections.includes(n) || data.disabled
+      )
+    );
+    components.push(new ActionRowBuilder().addComponents(guessButtonRow));
+  }
+  return components;
 };
 
 const RevealStartResponse = async (client, data, isUpdated = false) => {
-  const { msgComponents, msgComponents2, msgComponents3, msgComponents4 } =
-    await fetchComponents(data);
+  const msgcomponents = await fetchComponents(data);
 
   const msg = new EmbedBuilder()
     .setTitle("Reveal Game: Player One Select")
     .setDescription(`${data.message}`)
     .addFields(
       {
-        name: "Player One",
+        name: "Picker",
         value: `<@${data.player}> (id ${data.player})`,
         inline: true,
       },
       {
-        name: "Player Two",
+        name: "Revealer",
         value: `<@${data.revealer}> (id ${data.revealer})`,
         inline: true,
       }
     )
     .setColor(Colors.Gold);
+  const msgPayload = {
+    embeds: [msg],
+    components: [...msgcomponents],
+    ephemeral: true,
+  };
+  return !isUpdated
+    ? SendToChannel(client, data.channelId, msgPayload, false)
+    : MessageToChannel(client, msgPayload, true);
+};
+
+const RevealWithdrawResponse = async (client, data, isUpdated = false) => {
+  const btnTitle = data.iswin ? "Withdraw" : "Next Round";
+  const description = data.message;
+  const btnData = data.iswin
+    ? { id: "claim-win", data: { round: data.round } }
+    : { id: "next-round", data: { round: data.round } };
+  const btnStyle = data.iswin ? ButtonStyle.Success : ButtonStyle.Danger;
+  const msgComponents = new ActionRowBuilder().addComponents(
+    buttonComponent(JSON.stringify(btnData), btnTitle, btnStyle, data.disabled)
+  );
+
+  const msg = new EmbedBuilder()
+    .setTitle(`Reveal Game: ${btnTitle}`)
+    .setDescription(`${description}`)
+    .addFields(
+      {
+        name: "Picker",
+        value: `<@${data.player}> (id ${data.player}) ${
+          data.winner == data.player ? "(winner)" : ""
+        }`,
+        inline: true,
+      },
+      {
+        name: "Revealer",
+        value: `<@${data.revealer}> (id ${data.revealer}) ${
+          data.winner == data.revealer ? "(winner)" : ""
+        }`,
+        inline: true,
+      },
+      {
+        name: "-----------------------------------------------------------------------------------",
+        value:
+          "-----------------------------------------------------------------------------------",
+        inline: false,
+      }
+    )
+    .setColor(Colors.Gold);
+  if (data.reveal) {
+    const revD = data.reveal;
+    msg.addFields(
+      {
+        name: "Picker's Score",
+        value: `${
+          revD.creator == data.player
+            ? String(revD.creatorScore)
+            : String(revD.counterpartyScore)
+        }`,
+        inline: true,
+      },
+      {
+        name: "Revealer's Score",
+        value: `${
+          revD.creator == data.revealer
+            ? String(revD.creatorScore)
+            : String(revD.counterpartyScore)
+        }`,
+        inline: true,
+      }
+    );
+  }
 
   const msgPayload = {
     embeds: [msg],
-    components: [msgComponents, msgComponents2, msgComponents3, msgComponents4],
+    components: [msgComponents],
     ephemeral: true,
   };
   return !isUpdated
@@ -310,4 +355,5 @@ module.exports = {
   MessageToChannel,
   RevealCounterPartyAcceptResponse,
   RevealStartResponse,
+  RevealWithdrawResponse,
 };

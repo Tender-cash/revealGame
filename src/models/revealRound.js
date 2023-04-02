@@ -16,6 +16,8 @@ const modelSchema = new Schema(
     revealerSelection: { type: String },
     selections: { type: Array },
     won: { type: Boolean },
+    roundended: { type: Boolean },
+    disabledSelections: { type: Array },
     status: {
       type: String,
       enum: ["player_select", "revealer_select", "completed"],

@@ -1,4 +1,6 @@
+/* eslint-disable prefer-destructuring */
 const Logger = require("../logger");
+const discordTranscripts = require("discord-html-transcripts");
 const {
   RevealFirstResponse,
   SendReply,
@@ -8,19 +10,22 @@ const {
   AdduserNameModalResponse,
   RevealCounterPartyAcceptResponse,
   RevealStartResponse,
+  RevealWithdrawResponse,
 } = require("./responses");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const duration = require("dayjs/plugin/duration");
 const RevealService = require("../services/revealService");
 const models = require("../models");
-const { PermissionFlagsBits } = require("discord.js");
+const { PermissionFlagsBits, ChannelType } = require("discord.js");
 dayjs.extend(utc);
 dayjs.extend(duration);
 
 const FILETAG = "Handler";
-
-const twoDP = (n) => (n > 9 ? n : "0" + n);
+const DELETE_TIMEOUT = 1000;
+const TRANSCRIPT_CHANNEL = "reveal-transcripts";
+const ESCROW_SUPPORT_ROLE = "escrow_support";
+const LOG_CATEGORY = "reveal-logs";
 
 const createReveal = async (client, interaction) => {
   const TAG = "createReveal";
@@ -97,15 +102,15 @@ const addPlayerTOReavel = async (client, message) => {
       { ...data, counterparty: counterParty.id },
       false
     );
-    MessageToChannel(
-      message,
-      `<@${data.creator}> (id ${data.creator}) has added <@${counterParty.id}> (id ${counterParty.id}) as counter-party.`,
-      false
-    );
+    // MessageToChannel(
+    //   message,
+    //   `<@${data.creator}> (id ${data.creator}) has added <@${counterParty.id}> (id ${counterParty.id}) as counter-party.`,
+    //   false
+    // );
     return SendReply(
       message,
       `<@${data.creator}> (id ${data.creator}) has added <@${counterParty.id}> (id ${counterParty.id}) as counter-party.`,
-      true
+      false
     );
   } catch (error) {
     console.log("err", error);
@@ -123,19 +128,20 @@ const acceptDeclineReveal = async (client, message, isAccepted = true) => {
   if (accpData.error) return SendReply(message, accpData.message, true);
   const escrow = accpData.data;
   if (isAccepted) {
-    // MessageToChannel(
-    //   message,
-    //   `<@${escrow.counterparty}> (id ${escrow.counterparty}) has accepted the request to play`
-    // );
-    // RevealCounterPartyAcceptResponse(
-    //   message,
-    //   { ...escrow, disabled: true },
-    //   true
-    // );
-    const revD = await RevealService.startRound(escrow.channelId, 0);
+    await MessageToChannel(
+      message,
+      `<@${escrow.counterparty}> (id ${escrow.counterparty}) has accepted the request to play`,
+      false
+    );
+    await RevealCounterPartyAcceptResponse(
+      message,
+      { ...escrow, disabled: true },
+      true
+    );
+    const revD = await RevealService.startRound(escrow.channelId, 1);
     if (revD.error) return SendReply(message, revD.message, true);
     // mark escrow as started
-    RevealStartResponse(
+    return RevealStartResponse(
       client,
       { ...revD.data, message: revD.message },
       false
@@ -151,23 +157,173 @@ const acceptDeclineReveal = async (client, message, isAccepted = true) => {
         counterparty: "",
       }
     );
-    RevealCounterPartyAcceptResponse(
+    await RevealCounterPartyAcceptResponse(
       message,
       { ...escrow, disabled: true },
       true
     );
-    RevealFirstResponse(
+    await RevealFirstResponse(
       client,
       {
         channelId,
       },
       false
     );
-    return MessageToChannel(
+    return SendReply(
       message,
-      `<@${escrow.counterparty}> Has Declined the Escrow, Add a Second Player`
+      `<@${escrow.counterparty}> Has Declined the Escrow, Add a Second Player`,
+      false
     );
   }
+};
+
+const makeSelection = async (client, message, data) => {
+  const userId = message.user.id;
+  const { channelId } = message;
+  const { selection, round } = data;
+  const playerSelect = await RevealService.playerSelect(
+    channelId,
+    round,
+    userId,
+    selection
+  );
+  if (playerSelect.error) return SendReply(message, playerSelect.message, true);
+  await SendReply(message, playerSelect.message, false);
+  if (playerSelect.nextRound && !playerSelect.roundended) {
+    // MessageToChannel(message, `Next round`)
+    const NextRound = parseFloat(round) + 1;
+    // create new Round
+    const revD = await RevealService.startRound(channelId, NextRound);
+    if (revD.error) return SendReply(message, revD.message, true);
+    return RevealStartResponse(
+      client,
+      { ...revD.data, message: revD.message },
+      false
+    );
+  }
+  if (playerSelect.roundended) {
+    // send winnings to winner and close channel
+    return RevealWithdrawResponse(
+      client,
+      {
+        ...playerSelect.data,
+        iswin: playerSelect.won,
+        message: playerSelect.message,
+      },
+      false
+    );
+  }
+  return;
+};
+
+const nextRoundSelect = async (client, message, data) => {
+  const { channelId } = message;
+  const author = message.user.id;
+  const { round } = data;
+  const nextRound = parseFloat(round) + 1;
+  const revD = await RevealService.startRound(channelId, nextRound, true);
+  if (revD.error) return SendReply(message, revD.message, true);
+  await SendReply(message, `Round ${nextRound}`, false);
+  // mark escrow as started
+  return RevealStartResponse(
+    client,
+    { ...revD.data, message: revD.message },
+    false
+  );
+};
+
+const claimWins = async (client, message, data) => {
+  const { channelId } = message;
+  const author = message.user.id;
+  const { round } = data;
+  const clamData = await RevealService.claimWins(channelId, author);
+  if (clamData.error) return SendReply(message, clamData.message, true);
+  const Reveal = clamData.data;
+  await SendReply(message, `<@${author}> has Withdrawn Wins`, false);
+  await MessageToChannel(
+    message,
+    "Channel Will be Deleted in 10 seconds",
+    false
+  );
+  const guild = message.guild;
+  const everyoneRole = guild.roles.everyone;
+  const supportRole = guild.roles.cache.find(
+    (r) => r.name === ESCROW_SUPPORT_ROLE
+  );
+
+  let transcriptChannel = guild.channels.cache.find(
+    (c) => c.name == TRANSCRIPT_CHANNEL && c.type == ChannelType.GuildText
+  );
+  if (!transcriptChannel) {
+    let logCategory = guild.channels.cache.find(
+      (c) => c.name == LOG_CATEGORY && c.type == ChannelType.GuildCategory
+    );
+    if (!logCategory) {
+      // create log category
+      logCategory = await guild.channels.create({
+        name: LOG_CATEGORY,
+        type: ChannelType.GuildCategory,
+        permissionOverwrites: [
+          {
+            type: "role",
+            id: supportRole.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+            ],
+          },
+          {
+            type: "role",
+            id: everyoneRole.id,
+            deny: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+            ],
+          },
+        ],
+      });
+    }
+    transcriptChannel = await guild.channels.create({
+      name: TRANSCRIPT_CHANNEL,
+      type: ChannelType.GuildText,
+      permissionOverwrites: [
+        {
+          type: "role",
+          id: supportRole.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+          ],
+        },
+        {
+          type: "role",
+          id: everyoneRole.id,
+          deny: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+          ],
+        },
+      ],
+    });
+    transcriptChannel.setParent(logCategory.id);
+  }
+  // save channel transacript to transcript channel
+  const attachment = await discordTranscripts.createTranscript(message.channel);
+  transcriptChannel.send(
+    `${Reveal.channelName} between <@${Reveal.creator}> (${Reveal.creator}) and <@${Reveal.counterparty}> (${Reveal.counterparty})`
+  );
+  transcriptChannel.send({
+    files: [attachment],
+  });
+  setTimeout(async () => {
+    // remove permission from creator
+    await message.channel.permissionOverwrites.delete(Reveal.creator);
+    // remove permission from counterparty
+    if (Reveal.counterparty)
+      await message.channel.permissionOverwrites.delete(Reveal.counterparty);
+    // delete channel
+    await message.channel.delete();
+  }, DELETE_TIMEOUT);
 };
 
 module.exports = {
@@ -175,4 +331,7 @@ module.exports = {
   addSecondPlayer,
   addPlayerTOReavel,
   acceptDeclineReveal,
+  makeSelection,
+  nextRoundSelect,
+  claimWins,
 };
