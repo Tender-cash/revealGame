@@ -90,10 +90,15 @@ const addPlayerTOReavel = async (client, message) => {
       });
     }
     // update add counterparty modal to disabled
-    RevealFirstResponse(
+    await RevealFirstResponse(
       message,
       { ...data, channelId: message.channelId, disabled: true },
       true
+    );
+    await SendReply(
+      message,
+      `<@${data.creator}> (id ${data.creator}) has added <@${counterParty.id}> (id ${counterParty.id}) as second player.`,
+      false
     );
     // update Escrow with counterparty
     await RevealService.addCounterParty(counterParty.id, channelId);
@@ -102,16 +107,7 @@ const addPlayerTOReavel = async (client, message) => {
       { ...data, counterparty: counterParty.id },
       false
     );
-    // MessageToChannel(
-    //   message,
-    //   `<@${data.creator}> (id ${data.creator}) has added <@${counterParty.id}> (id ${counterParty.id}) as counter-party.`,
-    //   false
-    // );
-    return SendReply(
-      message,
-      `<@${data.creator}> (id ${data.creator}) has added <@${counterParty.id}> (id ${counterParty.id}) as counter-party.`,
-      false
-    );
+    return;
   } catch (error) {
     console.log("err", error);
   }
