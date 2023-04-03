@@ -24,7 +24,7 @@ dayjs.extend(utc);
 dayjs.extend(duration);
 
 const FILETAG = "Handler";
-const DELETE_TIMEOUT = 2000;
+const DELETE_TIMEOUT = 20000;
 // const TRANSCRIPT_CHANNEL = "reveal-transcripts";
 // const ESCROW_SUPPORT_ROLE = "escrow_support";
 // const LOG_CATEGORY = "reveal-logs";
