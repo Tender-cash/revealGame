@@ -17,6 +17,7 @@ const modelSchema = new Schema(
     selections: { type: Array },
     won: { type: Boolean },
     roundended: { type: Boolean },
+    allplayed: { type: Boolean },
     disabledSelections: { type: Array },
     status: {
       type: String,

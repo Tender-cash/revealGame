@@ -11,6 +11,7 @@ const {
   RevealCounterPartyAcceptResponse,
   RevealStartResponse,
   RevealWithdrawResponse,
+  ChooseGameTypeResponse,
 } = require("./responses");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
@@ -23,22 +24,33 @@ dayjs.extend(utc);
 dayjs.extend(duration);
 
 const FILETAG = "Handler";
-const DELETE_TIMEOUT = 1000;
+const DELETE_TIMEOUT = 2000;
 // const TRANSCRIPT_CHANNEL = "reveal-transcripts";
 // const ESCROW_SUPPORT_ROLE = "escrow_support";
 // const LOG_CATEGORY = "reveal-logs";
 const currentToken = config.TOKEN || "ecox";
 
-const createReveal = async (client, interaction) => {
+const ChooseGameType = async (client, interaction) =>
+  ChooseGameTypeResponse(interaction, {}, false, true);
+
+const createReveal = async (client, interaction, data) => {
   const TAG = "createReveal";
   const userId = interaction.user.id;
   const serverId = interaction.guild.id;
+  const { type } = data;
   try {
-    const revealF = await RevealService.CreateReveal(client, serverId, userId);
+    await ChooseGameTypeResponse(interaction, { disabled: true }, true);
+    await SendReply(interaction, "Processing...", true);
+    const revealF = await RevealService.CreateReveal(
+      client,
+      serverId,
+      userId,
+      type
+    );
     if (revealF.error) return SendReply(interaction, revealF.message, true);
     await NotifyChannel(
       client,
-      message,
+      interaction,
       `<@${userId}> (id ${userId})  sends 100${currentToken} to reveal bot`
     );
     return SendReply(interaction, revealF.message, true);
@@ -131,16 +143,16 @@ const acceptDeclineReveal = async (client, message, isAccepted = true) => {
   if (accpData.error) return SendReply(message, accpData.message, true);
   const escrow = accpData.data;
   if (isAccepted) {
-    await MessageToChannel(
-      message,
-      `<@${escrow.counterparty}> (id ${escrow.counterparty}) has accepted the request to play`,
-      false
-    );
-    await NotifyChannel(
-      client,
-      message,
-      `<@${escrow.counterparty}> (id ${escrow.counterparty})  sends 100${currentToken} to reveal bot`
-    );
+    // await MessageToChannel(
+    //   message,
+    //   `<@${escrow.counterparty}> (id ${escrow.counterparty}) has accepted the request to play`,
+    //   false
+    // );
+    // await NotifyChannel(
+    //   client,
+    //   message,
+    //   `<@${escrow.counterparty}> (id ${escrow.counterparty})  sends 100${currentToken} to reveal bot`
+    // );
     await RevealCounterPartyAcceptResponse(
       message,
       { ...escrow, disabled: true },
@@ -197,7 +209,11 @@ const makeSelection = async (client, message, data) => {
   );
   if (playerSelect.error) return SendReply(message, playerSelect.message, true);
   await SendReply(message, playerSelect.message, false);
-  if (playerSelect.nextRound && !playerSelect.roundended) {
+  if (
+    playerSelect.nextRound &&
+    !playerSelect.roundended &&
+    !playerSelect.isWinner
+  ) {
     // MessageToChannel(message, `Next round`)
     const NextRound = parseFloat(round) + 1;
     // create new Round
@@ -209,7 +225,7 @@ const makeSelection = async (client, message, data) => {
       false
     );
   }
-  if (playerSelect.roundended) {
+  if (playerSelect.roundended || playerSelect.isWinner) {
     // send winnings to winner and close channel
     return RevealWithdrawResponse(
       client,
@@ -250,7 +266,7 @@ const claimWins = async (client, message, data) => {
   await SendReply(message, `<@${author}> has Withdrawn Wins`, false);
   await MessageToChannel(
     message,
-    "Channel Will be Deleted in 10 seconds",
+    "Channel Will be Deleted in 20 seconds",
     false
   );
   // const guild = message.guild;
@@ -342,4 +358,5 @@ module.exports = {
   makeSelection,
   nextRoundSelect,
   claimWins,
+  ChooseGameType,
 };

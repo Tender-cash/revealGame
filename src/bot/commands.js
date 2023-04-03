@@ -8,6 +8,7 @@ const {
   makeSelection,
   nextRoundSelect,
   claimWins,
+  ChooseGameType,
 } = require("./handler");
 const { SendReply } = require("./responses");
 const Logger = require("../logger");
@@ -20,7 +21,8 @@ const Commandhandler = (client, interaction) => {
     switch (interaction.commandName) {
       case "reveal":
       case "wager":
-        createReveal(client, interaction);
+        // createReveal(client, interaction);
+        ChooseGameType(client, interaction);
         break;
       default:
         SendReply(interaction, "Invalid command!!!");
@@ -36,6 +38,9 @@ const ButtonHandler = (client, interaction, operation, data) => {
   const TAG = "ButtonHandler";
   try {
     switch (operation) {
+      case "game-type":
+        createReveal(client, interaction, data);
+        break;
       case "add-player":
         addSecondPlayer(interaction);
         break;

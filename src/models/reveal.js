@@ -24,6 +24,8 @@ const modelSchema = new Schema(
     disabledSelections: { type: Array },
     revealWinner: { type: String },
     serverId: { type: String },
+    gameNumbers: { type: String },
+    gamePrice: { type: String },
     status: {
       type: String,
       enum: ["waiting", "counterparty", "ongoing", "ended"],

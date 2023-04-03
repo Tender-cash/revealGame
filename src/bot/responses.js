@@ -344,6 +344,54 @@ const RevealWithdrawResponse = async (client, data, isUpdated = false) => {
     : MessageToChannel(client, msgPayload, true);
 };
 
+const ChooseGameTypeResponse = async (
+  client,
+  data,
+  isUpdated = false,
+  inter = false
+) => {
+  const msgComponents = new ActionRowBuilder().addComponents(
+    buttonComponent(
+      JSON.stringify({ id: "game-type", data: { type: "10" } }),
+      "Game of 10",
+      ButtonStyle.Primary,
+      data.disabled
+    ),
+    buttonComponent(
+      JSON.stringify({ id: "game-type", data: { type: "20" } }),
+      "Game of 20",
+      ButtonStyle.Primary,
+      data.disabled
+    )
+  );
+
+  const msg = new EmbedBuilder()
+    .setTitle("Reveal Game: Select Game Type")
+    .setDescription("Select Game Type to proceed...")
+    .addFields(
+      {
+        name: "Game Type 10",
+        value: `100 ${config.TOKEN}`,
+        inline: true,
+      },
+      {
+        name: "Game Type 20",
+        value: `500 ${config.TOKEN}`,
+        inline: true,
+      }
+    )
+    .setColor(Colors.Gold);
+
+  const msgPayload = {
+    embeds: [msg],
+    components: [msgComponents],
+    ephemeral: true,
+  };
+  return !isUpdated && !inter
+    ? SendToChannel(client, data.channelId, msgPayload, false)
+    : MessageToChannel(client, msgPayload, isUpdated);
+};
+
 module.exports = {
   SendDefer,
   SendReply,
@@ -356,4 +404,5 @@ module.exports = {
   RevealCounterPartyAcceptResponse,
   RevealStartResponse,
   RevealWithdrawResponse,
+  ChooseGameTypeResponse,
 };
