@@ -165,11 +165,11 @@ const RevealService = {
     // find reveal with channelId
     const reveal = await models.Reveal.findOne({ channelId }).lean();
     if (!reveal) return { error: true, message: "Invalid Reveal ID" };
-    // if (reveal.counterparty !== userId)
-    //   return {
-    //     error: true,
-    //     message: `<@${reveal.counterparty}> is required to accept/decline`,
-    //   };
+    if (reveal.counterparty !== userId)
+      return {
+        error: true,
+        message: `<@${reveal.counterparty}> is required to accept/decline`,
+      };
     if (!isAccepted) {
       // remove counterparty and update db
       await models.Reveal.updateOne(
@@ -193,18 +193,18 @@ const RevealService = {
     if (balance < parseFloat(reveal.gamePrice))
       return { error: true, message: "Insufficient funds to Create Reveal" };
     // charge user wallet
-    // const sendValue = await sendFromVirtualToAccount(
-    //   userAcctId,
-    //   wagerAcctId,
-    //   revealPrice,
-    //   0
-    // );
-    // if (!sendValue.success)
-    //   return {
-    //     error: true,
-    //     message: sendValue.message || "couldn't pay for reveal channel",
-    //   };
-    const sendValue = {};
+    const sendValue = await sendFromVirtualToAccount(
+      userAcctId,
+      wagerAcctId,
+      revealPrice,
+      0
+    );
+    if (!sendValue.success)
+      return {
+        error: true,
+        message: sendValue.message || "couldn't pay for reveal channel",
+      };
+    // const sendValue = {};
     await models.Reveal.updateOne(
       { channelId },
       {
@@ -310,16 +310,16 @@ const RevealService = {
       return { error: true, message: "Reveal Round Invalid" };
     const IsPlayerTurn = revealroundExists.status == "player_select";
     const IsRevealerTurn = revealroundExists.status == "revealer_select";
-    // if (IsPlayerTurn && revealroundExists.player !== userId)
-    //   return {
-    //     error: true,
-    //     message: `<@${revealroundExists.player}> is Required to Select`,
-    //   };
-    // if (IsRevealerTurn && revealroundExists.revealer !== userId)
-    //   return {
-    //     error: true,
-    //     message: `<@${revealroundExists.revealer}> is Required to Select`,
-    //   };
+    if (IsPlayerTurn && revealroundExists.player !== userId)
+      return {
+        error: true,
+        message: `<@${revealroundExists.player}> is Required to Select`,
+      };
+    if (IsRevealerTurn && revealroundExists.revealer !== userId)
+      return {
+        error: true,
+        message: `<@${revealroundExists.revealer}> is Required to Select`,
+      };
     // update base on userType
     const upData = IsPlayerTurn
       ? {
