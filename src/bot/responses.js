@@ -134,13 +134,15 @@ const RevealFirstResponse = async (client, data, isUpdated = false) => {
     )
   );
 
-  // const msg = new EmbedBuilder()
-  //   .setTitle("Reveal Game")
-  //   .setDescription("Add Second Player to Continue Game")
-  //   .setColor(Colors.Gold);
+  const msg = new EmbedBuilder()
+    .setTitle("Reveal Game")
+    .setDescription(
+      "In the game of Reveal, two players each have a set of buttons numbered 1-20. The game starts with Player 1 selecting a number. The system then hides the buttons and asks Player 2 to guess the number that Player 1 chose.\n\nIf Player 2 guesses correctly, the game ends and the pot of funds is awarded to Player 2. However, if Player 2 guesses incorrectly, the system reveals both numbers selected by the players and disables those buttons. Then, it's Player 2's turn to select a number first and the game continues in the same way."
+    )
+    .setColor(Colors.Gold);
 
   const msgPayload = {
-    embeds: [],
+    embeds: [msg],
     components: [msgComponents],
     ephemeral: true,
   };

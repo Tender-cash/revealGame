@@ -272,6 +272,12 @@ const claimWins = async (client, message, data) => {
     "Channel Will be Deleted in 20 seconds",
     false
   );
+
+  await NotifyChannel(
+    client,
+    message,
+    `<@${author}> (id ${author}) Cash out ${clamData.data.gamePrice} ${currentToken} from Reveal Game Bot`
+  );
   // const guild = message.guild;
   // const everyoneRole = guild.roles.everyone;
   // const supportRole = guild.roles.cache.find(
