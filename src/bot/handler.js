@@ -51,7 +51,9 @@ const createReveal = async (client, interaction, data) => {
     await NotifyChannel(
       client,
       interaction,
-      `<@${userId}> (id ${userId})  sends 100${currentToken} to reveal bot`
+      `<@${userId}> (id ${userId})  sends ${
+        revealF.gamePrice || "100"
+      } ${currentToken} to reveal bot`
     );
     return SendReply(interaction, revealF.message, true);
   } catch (error) {
@@ -151,7 +153,7 @@ const acceptDeclineReveal = async (client, message, isAccepted = true) => {
     await NotifyChannel(
       client,
       message,
-      `<@${escrow.counterparty}> (id ${escrow.counterparty})  sends 100${currentToken} to reveal bot`
+      `<@${escrow.counterparty}> (id ${escrow.counterparty})  sends ${escrow.gamePrice} ${currentToken} to reveal bot`
     );
 
     await RevealCounterPartyAcceptResponse(

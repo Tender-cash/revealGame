@@ -141,6 +141,7 @@ const RevealService = {
       message: "Reveal Paid...",
       channelName,
       channelId: createdChannel.id,
+      gamePrice,
     };
   },
   addCounterParty: async (userId, channelId) => {
