@@ -29,7 +29,7 @@ const WagerWalletKey = "reveal";
 const CURentT = config.TOKEN || "ecox";
 const revealPrice = config.TICKET_VALUE;
 const totalSelections = (num = 10) =>
-  Array(10)
+  Array(num)
     .join()
     .split(",")
     .map(
@@ -356,6 +356,7 @@ const RevealService = {
       let creatorScore = parseFloat(reveal.creatorScore) || 0;
       let counterpartyScore = parseFloat(reveal.counterpartyScore) || 0;
 
+      message = `<@${revealroundExists.revealer}> Pick ${selection} While <@${revealroundExists.player}> Picked ${revealroundExists.playerSelection}\n`;
       if (revealroundExists.playerSelection === selection) {
         if (reveal.creator === revealroundExists.revealer) {
           creatorScore = creatorScore + 1;
@@ -364,10 +365,9 @@ const RevealService = {
         }
         // mark revealer as winner for round and selection to reveal disabledNumber
         won = true;
-        message = `<@${revealroundExists.revealer}> has Won this Round!!`;
-      } else {
-        message = `<@${revealroundExists.revealer}> Pick ${selection} While <@${revealroundExists.player}> Picked ${revealroundExists.playerSelection}`;
+        message = `<@${revealroundExists.revealer}> has Won this Round!!\n`;
       }
+
       // console.log("exit-->", revealroundExists);
       if (revealroundExists.roundended || revealroundExists.allplayed) {
         nextRound = !revealroundExists.roundended;
