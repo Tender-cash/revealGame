@@ -196,7 +196,10 @@ const acceptDeclineReveal = async (client, message, isAccepted = true) => {
       false
     );
     // kick counterparty out of channel and set back to add counterparty
-    return message.channel.permissionOverwrites.delete(escrow.counterparty);
+    return setTimeout(
+      () => message.channel.permissionOverwrites.delete(escrow.counterparty),
+      DELETE_TIMEOUT
+    );
   }
 };
 
