@@ -170,8 +170,6 @@ const acceptDeclineReveal = async (client, message, isAccepted = true) => {
       false
     );
   } else {
-    // kick counterparty out of channel and set back to add counterparty
-    message.channel.permissionOverwrites.delete(escrow.counterparty);
     // mark escrow as deposited
     await models.Reveal.updateOne(
       { channelId },
@@ -192,11 +190,13 @@ const acceptDeclineReveal = async (client, message, isAccepted = true) => {
       },
       false
     );
-    return SendReply(
+    await SendReply(
       message,
       `<@${escrow.counterparty}> Has Declined the Escrow, Add a Second Player`,
       false
     );
+    // kick counterparty out of channel and set back to add counterparty
+    return message.channel.permissionOverwrites.delete(escrow.counterparty);
   }
 };
 
