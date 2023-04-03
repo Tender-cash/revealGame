@@ -143,16 +143,17 @@ const acceptDeclineReveal = async (client, message, isAccepted = true) => {
   if (accpData.error) return SendReply(message, accpData.message, true);
   const escrow = accpData.data;
   if (isAccepted) {
-    // await MessageToChannel(
-    //   message,
-    //   `<@${escrow.counterparty}> (id ${escrow.counterparty}) has accepted the request to play`,
-    //   false
-    // );
-    // await NotifyChannel(
-    //   client,
-    //   message,
-    //   `<@${escrow.counterparty}> (id ${escrow.counterparty})  sends 100${currentToken} to reveal bot`
-    // );
+    await MessageToChannel(
+      message,
+      `<@${escrow.counterparty}> (id ${escrow.counterparty}) has accepted the request to play`,
+      false
+    );
+    await NotifyChannel(
+      client,
+      message,
+      `<@${escrow.counterparty}> (id ${escrow.counterparty})  sends 100${currentToken} to reveal bot`
+    );
+
     await RevealCounterPartyAcceptResponse(
       message,
       { ...escrow, disabled: true },
