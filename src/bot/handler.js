@@ -279,7 +279,7 @@ const claimWins = async (client, message, data) => {
   await NotifyChannel(
     client,
     message,
-    `<@${author}> (id ${author}) Cash out ${clamData.data.gamePrice} ${currentToken} from Reveal Game Bot`
+    `<@${author}> (id ${author}) Cashed Out ${clamData.data.amountToClaim} ${currentToken} from Reveal Game Bot`
   );
   // const guild = message.guild;
   // const everyoneRole = guild.roles.everyone;
