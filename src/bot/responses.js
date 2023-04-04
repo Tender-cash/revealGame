@@ -76,7 +76,14 @@ const MessageToChannel = async (message, data, updated = false) =>
 
 // Send Notification to Transaction Channel
 const NotifyChannel = async (client, interaction, message) => {
-  const channelNotID = config.TX_CHANNEL_ID;
+  let channelNotID = config.TX_CHANNEL_ID;
+  if (interaction.guild.id) {
+    const mServer = await models.Server.findOne({ sId: interaction.guild.id });
+    if (mServer) {
+      channelNotID = mServer.notificationChannel;
+    }
+  }
+
   const chn = await client.channels.cache.get(channelNotID);
   if (chn) {
     chn.send(message);
