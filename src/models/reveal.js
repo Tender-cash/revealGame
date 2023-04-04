@@ -26,9 +26,10 @@ const modelSchema = new Schema(
     serverId: { type: String },
     gameNumbers: { type: String },
     gamePrice: { type: String },
+    amountToClaim: { type: String },
     status: {
       type: String,
-      enum: ["waiting", "counterparty", "ongoing", "ended"],
+      enum: ["waiting", "counterparty", "ongoing", "ended", "completed"],
       default: "waiting",
     },
   },

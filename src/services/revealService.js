@@ -457,10 +457,18 @@ const RevealService = {
         systemMessage: sendValue.message || "couldn't pay for send winns",
       };
     // const sendValue = {};
+    await models.Reveal.updateOne(
+      { _id: reveal._id },
+      {
+        amountToClaim,
+        SystemFee,
+        status: "completed",
+      }
+    );
     return {
       error: false,
       message: "Winnings Sent to Winner",
-      data: reveal,
+      data: { ...reveal, amountToClaim },
     };
   },
 };
