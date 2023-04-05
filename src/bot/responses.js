@@ -37,6 +37,13 @@ const SendDefer = async (interaction, content = "Loading....") =>
 const SendReply = async (interaction, data, ephemeral = true) =>
   SendFollowUp(interaction, data, false, ephemeral);
 
+const SendComponentReply = async (
+  interaction,
+  data,
+  ephemeral = true,
+  isUpdated = false
+) => SendFollowUp(interaction, data, true, ephemeral, isUpdated);
+
 // Send Interaction FollowUp
 const SendFollowUp = async (
   interaction,
@@ -396,9 +403,10 @@ const ChooseGameTypeResponse = async (
     components: [msgComponents],
     ephemeral: true,
   };
-  return !isUpdated && !inter
-    ? SendToChannel(client, data.channelId, msgPayload, false)
-    : MessageToChannel(client, msgPayload, isUpdated);
+  // return !isUpdated && !inter
+  //   ? SendToChannel(client, data.channelId, msgPayload, false)
+  //   : MessageToChannel(client, msgPayload, isUpdated);
+  return SendComponentReply(client, msgPayload, true, isUpdated);
 };
 
 module.exports = {
