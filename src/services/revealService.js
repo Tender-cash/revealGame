@@ -168,7 +168,7 @@ const RevealService = {
     if (reveal.counterparty !== userId)
       return {
         error: true,
-        message: `<@${reveal.counterparty}> is required to accept/decline`,
+        message: `<@${reveal.counterparty}> is required to accept/decline to start the game`,
       };
     if (!isAccepted) {
       // remove counterparty and update db
@@ -184,14 +184,14 @@ const RevealService = {
     // charge userWallet for ticket price
     const userWallet = await models.Wallet.findOne({ userId });
     if (!userWallet)
-      return { error: true, message: "User needs to create a tender wallet" };
+      return { error: true, message: "User needs to create a Tender wallet" };
     const userAcctId =
       CURentT == "eco" ? userWallet.Eco_vId : userWallet.Ecox_vId;
     const wagerAcctId =
       CURentT == "eco" ? wagerWallet.Eco_vId : wagerWallet.Ecox_vId;
     const balance = await getVirtualBalance(userAcctId);
     if (balance < parseFloat(reveal.gamePrice))
-      return { error: true, message: "Insufficient funds to Create Reveal" };
+      return { error: true, message: "Insufficient funds to create Reveal" };
     // charge user wallet
     const sendValue = await sendFromVirtualToAccount(
       userAcctId,
@@ -202,7 +202,7 @@ const RevealService = {
     if (!sendValue.success)
       return {
         error: true,
-        message: sendValue.message || "couldn't pay for reveal channel",
+        message: sendValue.message || "couldn't pay for Reveal channel",
       };
     // const sendValue = {};
     await models.Reveal.updateOne(
@@ -281,7 +281,7 @@ const RevealService = {
     );
     return {
       error: false,
-      message: `(<@${player}> you are the Picker while <@${revealer}> is the Revealer)
+      message: `(<@${player}> you are selecting first while <@${revealer}> will guess)
     `,
       data: {
         selections,
@@ -313,12 +313,12 @@ const RevealService = {
     if (IsPlayerTurn && revealroundExists.player !== userId)
       return {
         error: true,
-        message: `<@${revealroundExists.player}> is Required to Select`,
+        message: `<@${revealroundExists.player}> is required to select`,
       };
     if (IsRevealerTurn && revealroundExists.revealer !== userId)
       return {
         error: true,
-        message: `<@${revealroundExists.revealer}> is Required to Select`,
+        message: `<@${revealroundExists.revealer}> is required to select`,
       };
     // update base on userType
     const upData = IsPlayerTurn
@@ -334,7 +334,7 @@ const RevealService = {
     if (IsPlayerTurn) {
       return {
         error: false,
-        message: `<@${revealroundExists.revealer}> Reveal Selected Number...`,
+        message: `<@${revealroundExists.revealer}> Reveal selected Number...`,
         data: {
           ...revealroundExists,
           reveal,
@@ -366,7 +366,7 @@ const RevealService = {
         }
         // mark revealer as winner for round and selection to reveal disabledNumber
         won = true;
-        message = `<@${revealroundExists.revealer}> has Won this Round!!\n`;
+        message = `<@${revealroundExists.revealer}> Won this Round!!\n`;
       }
 
       // console.log("exit-->", revealroundExists);
@@ -384,7 +384,7 @@ const RevealService = {
           winner != null
         ) {
           message =
-            message + `. \n <@${winner}> is the Final Winner of the Reveal!!!`;
+            message + `. \n <@${winner}> is the Winner of this game`;
           isWinner = true;
         }
       }
@@ -429,12 +429,12 @@ const RevealService = {
     if (reveal.revealWinner !== userId)
       return {
         error: true,
-        message: `Don't be a Criminal!!, <@${reveal.revealWinner}> is the Winner!!`,
+        message: `You lost the game, only <@${reveal.revealWinner}> can withdraw`,
       };
     // process withdrawal
     const userWallet = await models.Wallet.findOne({ userId });
     if (!userWallet)
-      return { error: true, message: "User needs to create a tender wallet" };
+      return { error: true, message: "User needs to create a Tender wallet" };
     const userAcctId =
       CURentT == "eco" ? userWallet.Eco_vId : userWallet.Ecox_vId;
     const wagerAcctId =
@@ -453,8 +453,8 @@ const RevealService = {
     if (!sendValue.success)
       return {
         error: true,
-        message: "couldn't pay for send winns",
-        systemMessage: sendValue.message || "couldn't pay for send winns",
+        message: "couldn't process winnings",
+        systemMessage: sendValue.message || "couldn't process winnings",
       };
     // const sendValue = {};
     await models.Reveal.updateOne(
