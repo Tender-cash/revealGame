@@ -383,8 +383,7 @@ const RevealService = {
           winner != "draw" &&
           winner != null
         ) {
-          message =
-            message + `. \n <@${winner}> is the Winner of this game`;
+          message = message + `. \n <@${winner}> is the Winner of this game`;
           isWinner = true;
         }
       }
@@ -450,12 +449,14 @@ const RevealService = {
       amountToClaim,
       0
     );
-    if (!sendValue.success)
+    if (!sendValue.success) {
+      Logger.error(`${TAG}::: error ${JSON.stringify(sendValue)}`);
       return {
         error: true,
         message: "couldn't process winnings",
         systemMessage: sendValue.message || "couldn't process winnings",
       };
+    }
     // const sendValue = {};
     await models.Reveal.updateOne(
       { _id: reveal._id },
