@@ -14,6 +14,7 @@ const modelSchema = new Schema(
     onboardChannel: { type: String },
     notificationChannel: { type: String },
     notificationWagerChannel: { type: String },
+    notificationRevealChannel: { type: String },
     status: {
       type: String,
       enum: ["active", "removed", "onboarding"],

@@ -57,6 +57,7 @@ const createReveal = async (client, interaction, data) => {
     );
     return SendReply(interaction, revealF.message, true);
   } catch (error) {
+    conosle.log(error);
     Logger.error(`${FILETAG}::${TAG}---${error}`);
   }
 };
