@@ -26,6 +26,7 @@ const HandleInstallProcess = async (client) => {
 
 const createRequiredChannels = async (client, serverData) => {
   const guild = client;
+  let onNChannel = "";
   // const everyoneRole = guild.roles.everyone;
   // checks if server has notification channel if not existing...
   if (!serverData.notificationChannel) {
