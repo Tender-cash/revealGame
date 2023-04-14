@@ -4,6 +4,7 @@ const config = require("../config");
 const logger = require("../logger");
 const { makeRequest } = require("../utils/makeRequest");
 const models = require("../models");
+const Logger = require("../logger");
 
 const SLEEP_SECONDS = 25;
 const ethSDK = TatumEthSDK({ apiKey: config.API_KEY });
@@ -69,15 +70,21 @@ const CreateVirtualWallet = async (address = null, currency = "ETH") => {
 
 // send from virtual account to
 const sendFromVirtualToAccount = async (vId, rId, amount, fee = 0) => {
-  const Url = baseUrl + "/ledger/transaction";
-  const payAmt = parseFloat(amount) + parseFloat(fee);
-  const payData = {
-    senderAccountId: vId,
-    recipientAccountId: rId,
-    amount: String(payAmt),
-  };
-  const result = await makeRequest(Url, "POST", payData, headers);
-  return result;
+  try {
+    const Url = baseUrl + "/ledger/transaction";
+    const payAmt = parseFloat(amount) + parseFloat(fee);
+    const payData = {
+      senderAccountId: vId,
+      recipientAccountId: rId,
+      amount: String(payAmt),
+    };
+    const result = await makeRequest(Url, "POST", payData, headers);
+    return result;
+  } catch (err) {
+    Logger.error(
+      `${TAG}:::sendFromVirtualToAccount --- ${JSON.stringify(err)}`
+    );
+  }
 };
 
 // send custom token from wallet
