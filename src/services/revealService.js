@@ -82,7 +82,8 @@ const RevealService = {
   },
   CreateReveal: async (client, serverID, userId, gameNumbers = "10") => {
     const serverId = serverID || config.SERVER_ID;
-    const gamePrice = gameNumbers == "10" ? "100" : "500";
+    const gamePrice =
+      gameNumbers == "10" ? config.TEN_PRICE : config.TWENTY_PRICE;
     const wagerWallet = await models.Wallet.findOne({ userId: WagerWalletKey });
     if (!wagerWallet) {
       RevealService.createRevealWallet();

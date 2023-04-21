@@ -20,6 +20,8 @@ const {
   CONTRACT_FEE_ECOX,
   TX_CHANNEL_ID,
   TOKEN,
+  TEN_PRICE,
+  TWENTY_PRICE,
 } = process.env;
 
 // System config Data
@@ -52,5 +54,7 @@ const config = {
   },
   TX_CHANNEL_ID: TX_CHANNEL_ID || "1091888045034319912",
   TOKEN: TOKEN || "ecox",
+  TEN_PRICE: TEN_PRICE || "20",
+  TWENTY_PRICE: TWENTY_PRICE || "40",
 };
 module.exports = config;
