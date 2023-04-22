@@ -387,12 +387,12 @@ const ChooseGameTypeResponse = async (
     .addFields(
       {
         name: "Game Type 10",
-        value: `100 ${config.TOKEN}`,
+        value: `${config.TEN_PRICE} ${config.TOKEN}`,
         inline: true,
       },
       {
         name: "Game Type 20",
-        value: `500 ${config.TOKEN}`,
+        value: `${config.TWENTY_PRICE} ${config.TOKEN}`,
         inline: true,
       }
     )
