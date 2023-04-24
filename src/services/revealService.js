@@ -27,7 +27,6 @@ const SystemFee = 20;
 
 const WagerWalletKey = "reveal";
 const CURentT = config.TOKEN || "ecox";
-const revealPrice = config.TICKET_VALUE;
 const totalSelections = (num = 10) =>
   Array(num)
     .join()
@@ -160,11 +159,13 @@ const RevealService = {
   },
   CounterPartyPay: async (userId, channelId, isAccepted = false) => {
     const wagerWallet = await models.Wallet.findOne({ userId: WagerWalletKey });
+    console.log("se---", wagerWallet);
     if (!wagerWallet) {
       return { error: true, message: "Try Again" };
     }
     // find reveal with channelId
     const reveal = await models.Reveal.findOne({ channelId }).lean();
+    console.log("se---", reveal);
     if (!reveal) return { error: true, message: "Invalid Reveal ID" };
     if (reveal.counterparty !== userId)
       return {
@@ -197,19 +198,22 @@ const RevealService = {
     const sendValue = await sendFromVirtualToAccount(
       userAcctId,
       wagerAcctId,
-      revealPrice,
+      parseFloat(reveal.gamePrice),
       0
     );
     if (!sendValue.success)
       return {
         error: true,
-        message: sendValue.message || "couldn't pay for Reveal channel",
+        message:
+          sendValue.data.message ||
+          sendValue.message ||
+          "couldn't pay for Reveal channel",
       };
     // const sendValue = {};
     await models.Reveal.updateOne(
       { channelId },
       {
-        counterpartyAmount: revealPrice,
+        counterpartyAmount: parseFloat(reveal.gamePrice),
         counterpartyPaid: true,
         counterpartyPaymentInfo: JSON.stringify(sendValue),
         status: "started",
@@ -439,10 +443,10 @@ const RevealService = {
       CURentT == "eco" ? userWallet.Eco_vId : userWallet.Ecox_vId;
     const wagerAcctId =
       CURentT == "eco" ? wagerWallet.Eco_vId : wagerWallet.Ecox_vId;
-    const balance = await getVirtualBalance(wagerAcctId);
-    if (balance < parseFloat(revealPrice))
-      return { error: true, message: "Insufficient funds to Create Reveal" };
     const valueWin = parseFloat(reveal.gamePrice) * 2;
+    const balance = await getVirtualBalance(wagerAcctId);
+    if (balance < parseFloat(valueWin))
+      return { error: true, message: "Insufficient funds to Claim Reveal" };
     const amountToClaim = valueWin - (SystemFee / 100) * valueWin;
     const sendValue = await sendFromVirtualToAccount(
       wagerAcctId,

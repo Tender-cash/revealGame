@@ -7,6 +7,7 @@ const { ConfirmTx } = require("./bot/handler");
 const config = require("./config");
 const databaseConnect = require("./config/database");
 const Logger = require("./logger");
+const RevealService = require("./services/revealService");
 
 const StartApp = async () => {
   // initiate database
@@ -37,7 +38,10 @@ const StartApp = async () => {
     return res.status(400).json({ data: "invalid tx" });
   });
 
-  app.listen(PORT, () => Logger.info(`Validator listening on port ${PORT}!`));
+  app.listen(PORT, async () => {
+    await RevealService.createRevealWallet();
+    Logger.info(`Validator listening on port ${PORT}!`);
+  });
 };
 
 module.exports = StartApp;
